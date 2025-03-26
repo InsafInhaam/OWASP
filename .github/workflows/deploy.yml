@@ -1,4 +1,4 @@
-name: Docker WordPress CI
+name: WordPress Docker + ZAP Security Scan
 
 on:
   push:
@@ -6,25 +6,20 @@ on:
       - main
 
 jobs:
-  build-test:
+  build-test-scan:
     runs-on: ubuntu-latest
 
-    services:
-      docker:
-        image: docker:20.10.7
-        options: --privileged
-
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Build Docker containers
+      - name: Start Dockerized WordPress
         run: |
           docker compose up -d
-          sleep 30  # Wait for services to fully start
+          sleep 30  # wait for services to start
 
       - name: Run OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.8.0
@@ -35,8 +30,9 @@ jobs:
           fail_action: false
           allow_issue_writing: true
           artifact_name: zap_scan
+          # ❌ DO NOT ADD `docker_name` (it causes the error)
 
-      - name: Upload ZAP Report
+      - name: Upload ZAP Reports
         uses: actions/upload-artifact@v4
         with:
           name: zap_report
@@ -45,5 +41,5 @@ jobs:
             report_md.md
             report_json.json
 
-      - name: Tear down
-        run: docker-compose down
+      - name: Shutdown Containers
+        run: docker compose down
