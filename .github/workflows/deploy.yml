@@ -30,6 +30,20 @@ jobs:
         uses: zaproxy/action-baseline@v0.8.0
         with:
           target: "http://localhost:8000"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue_title: ZAP Scan Baseline Report
+          fail_action: false
+          allow_issue_writing: true
+          artifact_name: zap_scan
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: zap_report
+          path: |
+            report_html.html
+            report_md.md
+            report_json.json
 
       - name: Tear down
         run: docker-compose down
