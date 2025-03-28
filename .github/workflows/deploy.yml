@@ -24,12 +24,12 @@ jobs:
       - name: Run OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.8.0
         with:
-          target: "http://localhost:8000"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue_title: ZAP Scan Baseline Report
-          fail_action: false
-          allow_issue_writing: true
-          artifact_name: zap_scan
+            target: 'http://localhost:8000'
+            token: ${{ secrets.GITHUB_TOKEN }}
+            issue_title: ZAP Scan Baseline Report
+            fail_action: false
+            allow_issue_writing: true
+            artifact_name: zap_scan
           # ❌ DO NOT ADD `docker_name` (it causes the error)
 
       - name: Upload ZAP Reports
