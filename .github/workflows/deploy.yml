@@ -26,9 +26,20 @@ jobs:
           docker run --network host -v ${{ github.workspace }}:/zap/wrk/:rw \
             ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
             -t http://localhost:8000 \
-            -r zap_report.html -w zap_warnings.md -J zap_report.json || true
+            -r zap_report.html -w zap_warnings.md -J zap_report.json -d || true
 
       - name: Upload ZAP Reports
+        if: always()
+        run: |
+          ls -la
+          if [ -f zap_report.html ]; then
+            echo "Uploading ZAP reports..."
+          else
+            echo "ZAP reports not found!"
+          fi
+
+      - name: Upload if exists
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: zap_report
@@ -36,6 +47,7 @@ jobs:
             zap_report.html
             zap_warnings.md
             zap_report.json
+          if-no-files-found: ignore
 
       - name: Shut Down WordPress
         run: docker compose down
