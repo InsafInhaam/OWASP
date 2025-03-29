@@ -1,53 +1,57 @@
-name: WordPress Docker + ZAP Scan
+name: WordPress Security Scan CI
 
 on:
   push:
     branches:
       - main
+  schedule:
+    - cron: "0 1 * * *" # Every day at 1 AM UTC
 
 jobs:
-  zap-scan:
+  security-scan:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
+      - name: Set up Docker
         uses: docker/setup-buildx-action@v2
 
-      - name: Start Dockerized WordPress
+      - name: Start WordPress with Docker Compose
         run: |
           docker compose up -d
           sleep 30
 
-      - name: Pull and Run ZAP Baseline Scan via CLI
+      - name: Run WPScan
+        run: |
+          docker run --network host wpscanteam/wpscan \
+            --url http://localhost:8000 \
+            --enumerate vp,vt,u \
+            --api-token ${{ secrets.WPSCAN_API_TOKEN }} \
+            -o wpscan.json --format json || true
+
+      - name: Run OWASP ZAP Baseline Scan
         run: |
           docker run --network host -v ${{ github.workspace }}:/zap/wrk/:rw \
             ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
             -t http://localhost:8000 \
-            -r zap_report.html -w zap_warnings.md -J zap_report.json -d || true
+            -r zap_report.html -J zap_report.json -d || true
 
-      - name: Upload ZAP Reports
-        if: always()
+      - name: Run Trivy on WordPress Image
         run: |
-          ls -la
-          if [ -f zap_report.html ]; then
-            echo "Uploading ZAP reports..."
-          else
-            echo "ZAP reports not found!"
-          fi
+          docker pull wordpress:latest
+          docker run --rm aquasec/trivy image --format json --output trivy.json wordpress:latest || true
 
-      - name: Upload if exists
-        if: always()
+      - name: Upload Security Reports
         uses: actions/upload-artifact@v4
         with:
-          name: zap_report
+          name: security_reports
           path: |
             zap_report.html
-            zap_warnings.md
             zap_report.json
-          if-no-files-found: ignore
+            wpscan.json
+            trivy.json
 
       - name: Shut Down WordPress
         run: docker compose down
